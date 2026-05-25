@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract DigitalLegacy is ReentrancyGuard {
     struct Will {
         address nominee;
         uint256 lastHeartbeat;
-        uint256 dormancyPeriod; 
+        uint256 dormancyPeriod;
         bool isActive;
     }
 
@@ -39,14 +39,16 @@ contract DigitalLegacy is ReentrancyGuard {
         require(will.isActive, "Will not active");
         require(msg.sender == will.nominee, "Only nominee can claim");
         require(block.timestamp > will.lastHeartbeat + will.dormancyPeriod, "Dormancy period not over");
-
+        
         uint256 amount = userBalances[_owner];
         require(amount > 0, "No balance to claim");
-
+        
         userBalances[_owner] = 0;
         will.isActive = false;
         
-        payable(msg.sender).transfer(amount);
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Transfer failed");
+        
         emit LegacyClaimed(_owner, msg.sender, amount);
     }
 }
